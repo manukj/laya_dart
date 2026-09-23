@@ -1,39 +1,45 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# laya_dart
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+[Laya](https://huggingface.co/convaiinnovations/laya) is an open-source System 1 decision model. It evaluates a state against typed questions and returns choices, scores, and yes/no probabilities.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+`laya_dart` runs Laya locally in Flutter or Dart. It uses the [`onnxruntime_v2`](https://pub.dev/packages/onnxruntime_v2) Flutter FFI wrapper, backed by [ONNX Runtime](https://onnxruntime.ai/), to execute the model on the device.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## Install
 
-## Features
-
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```yaml
+dependencies:
+  laya_dart: ^0.0.1
 ```
 
-## Additional information
+## Use
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+```dart
+import 'package:laya_dart/laya_dart.dart';
+
+final laya = await Laya.load();
+final result = await laya.predictAsync(
+  'The customer was charged twice and wants a refund.',
+  {
+    'department': LayaQuestion.choice(
+      instructions: 'Which team should handle this message?',
+      criteria: {
+        'billing': 'payments and refunds',
+        'technical': 'bugs and outages',
+        'other': 'anything else',
+      },
+    ),
+    'refund': LayaQuestion.noul(
+      instructions: 'Does the customer request a refund?',
+    ),
+  },
+);
+await laya.close();
+```
+
+`Laya.predict` is synchronous. `Laya.predictAsync` runs inference through the runtime worker isolate and is suitable for Flutter UI code. Questions can be `choice`, `score`, or `noul`.
+
+For local model download, ONNX conversion, and bundle setup, see the [local model guide](tool/README.md).
+
+## License
+
+The `laya_dart` package is released under the MIT License. Laya model weights retain the model publisher's license.

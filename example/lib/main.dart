@@ -80,33 +80,29 @@ class _LayaDemoPageState extends State<LayaDemoPage> {
       // Model load is one-time and stays resident for the rest of the session.
       _agent ??= await Laya.load(_modelDir);
       final result = await _agent!.predictAsync(_controller.text, {
-        'department': {
-          'type': 'choice',
-          'instructions': 'Which department should handle this request?',
-          'criteria': {
+        'department': LayaQuestion.choice(
+          instructions: 'Which department should handle this request?',
+          criteria: {
             'billing': 'invoices, payments, refunds',
             'technical': 'bugs, outages, system errors',
             'sales': 'pricing, new contracts',
             'other': 'everything else',
           },
-        },
-        'urgency': {
-          'type': 'score',
-          'instructions': 'How urgent is this request?',
-          'criteria': [
+        ),
+        'urgency': LayaQuestion.score(
+          instructions: 'How urgent is this request?',
+          criteria: [
             'not urgent',
             'soon',
             'critical deadline or blocking issue',
           ],
-        },
-        'churn_risk': {
-          'type': 'noul',
-          'instructions': 'Does the sender threaten to cancel or leave?',
-        },
-        'refund_requested': {
-          'type': 'noul',
-          'instructions': 'Does the sender explicitly request a refund?',
-        },
+        ),
+        'churn_risk': LayaQuestion.noul(
+          instructions: 'Does the sender threaten to cancel or leave?',
+        ),
+        'refund_requested': LayaQuestion.noul(
+          instructions: 'Does the sender explicitly request a refund?',
+        ),
       });
       setState(() => _result = result);
     } catch (e) {
