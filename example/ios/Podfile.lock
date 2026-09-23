@@ -1,0 +1,35 @@
+PODS:
+  - Flutter (1.0.0)
+  - onnxruntime-c (1.23.0)
+  - onnxruntime-objc (1.23.0):
+    - onnxruntime-objc/Core (= 1.23.0)
+  - onnxruntime-objc/Core (1.23.0):
+    - onnxruntime-c (= 1.23.0)
+  - onnxruntime_v2 (0.0.1):
+    - Flutter
+    - onnxruntime-objc (= 1.23.0)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - onnxruntime_v2 (from `.symlinks/plugins/onnxruntime_v2/ios`)
+
+SPEC REPOS:
+  trunk:
+    - onnxruntime-c
+    - onnxruntime-objc
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  onnxruntime_v2:
+    :path: ".symlinks/plugins/onnxruntime_v2/ios"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  onnxruntime-c: 3174c63a963d9abbc2bf9627e3d622819c0ed5f7
+  onnxruntime-objc: 1254d12f8160e562e7693ff17f5aa3dd17dc409e
+  onnxruntime_v2: 4efe47858784a1fd65b5fc6d71d179f1d82b029d
+
+PODFILE CHECKSUM: 05feb34a54d1cb7daf735c3bbc191fc80d57e480
+
+COCOAPODS: 1.16.2
