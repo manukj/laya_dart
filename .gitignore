@@ -29,3 +29,7 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 /build/
 /coverage/
+/models/
+/tool/.reference/
+/tool/.venv/
+**/__pycache__/

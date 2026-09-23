@@ -1,5 +1,5 @@
 name: laya_dart
-description: "A new Flutter package project."
+description: "Run local Laya decision models in Flutter using ONNX Runtime."
 version: 0.0.1
 homepage:
 
@@ -11,6 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
   onnxruntime_v2: 1.23.2+2
+  unorm_dart: 0.3.2
+  http: ^1.2.0
+  path_provider: ^2.1.0
 
 dev_dependencies:
   flutter_test:

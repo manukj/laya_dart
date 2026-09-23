@@ -1,0 +1,27 @@
+{
+  "source": {
+    "repository": "https://github.com/receptron/laya",
+    "revision": "6478649e723122ca24bbf5fb69ed1010023c9750",
+    "files": {
+      "sequence.ts": "85cc81992bbe243f2154207c598dedb8b387b448916be2862b3e37903578cc1e",
+      "laya.ts": "db1ada2564f45a877094da0c3a0ab46b0e178f860542976ba0fcebba0417cd74",
+      "types.ts": "c95b3a1734ae2b8dd46846986b7aefd1651162446b80130152657651e0bc051a"
+    }
+  },
+  "model": {
+    "repository": "receptron/laya-onnx",
+    "revision": "68f27dfe5a27a54fb2b1fefc432f43f972e90868",
+    "files": {
+      "laya.onnx": {"bytes": 3807291, "sha256": "a874eb254b58b0fcb1e7ad56fbb188c29d64e08c9a46b689433e1f52c66dba1e"},
+      "laya.onnx.data": {"bytes": 1685258240, "sha256": "487746363a8da57bcadb4345352997d22a0fb90d70aa22c6856668d023242aba"}
+    },
+    "download_status": "blocked: Hugging Face artifact requests returned HTTP 403",
+    "tokenizer_sha256": null
+  },
+  "model_free": {
+    "tokenizer": "synthetic: one Unicode code point plus 100 per token; NOT Laya BPE",
+    "outputs": "synthetic float32 values passed through the unmodified upstream systemOne implementation",
+    "runtime": "Node.js 24; stripTypeScriptTypes; no ONNX execution",
+    "generator": "tool/generate_reference_fixtures.mjs"
+  }
+}
