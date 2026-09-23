@@ -1,0 +1,15 @@
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      # Create a tag such as v0.0.1 after updating pubspec.yaml and CHANGELOG.md.
+      # The tag version must match the package version.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  publish:
+    permissions:
+      # Allows pub.dev to authenticate this workflow without a stored token.
+      id-token: write
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
