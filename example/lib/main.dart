@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laya_dart/laya_dart.dart';
+import 'demo/snake_game.dart';
 
 /// Local dev bundle assembled by tool/export_local_model.py; see laya_dart/models/laya.
 const _modelDir =
@@ -116,7 +117,18 @@ class _LayaDemoPageState extends State<LayaDemoPage> {
   Widget build(BuildContext context) {
     final answers = _result?['answers'] as Map<String, Object>?;
     return Scaffold(
-      appBar: AppBar(title: const Text('Laya Email Triage Demo')),
+      appBar: AppBar(
+        title: const Text('Laya Email Triage Demo'),
+        actions: [
+          IconButton(
+            tooltip: 'Open Laya Snake',
+            icon: const Icon(Icons.sports_esports),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SnakeGamePage()),
+            ),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
