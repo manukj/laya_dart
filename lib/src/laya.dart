@@ -18,30 +18,21 @@ import 'tokenizer_adapter.dart';
 final class Laya {
   Laya._(this._tokenizer, this._config, this._runtime);
 
-  // TODO: fill in once the ONNX export is published to Hugging Face.
-  static const _defaultHuggingFaceRepoId = 'TODO/laya';
-  static const _defaultHuggingFaceSubfolder = '';
-  static const _defaultHuggingFaceRevision = 'main';
-
-  /// Opens a Laya bundle. If [modelLocalDir] is given, it's used as-is
-  /// (expects `laya.onnx` plus a `tokenizer/` folder and a config file; no
-  /// network access). If omitted, the bundle is downloaded from the default
-  /// Hugging Face repo into the app's own cache directory (already-cached
-  /// files are reused, not re-downloaded).
+  /// Opens [modelLocalDir] without network access. When omitted, downloads
+  /// the default pinned English bundle into application support storage,
+  /// or reuses its checksum-verified cache.
   static Future<Laya> load([String? modelLocalDir]) async {
     if (modelLocalDir != null) return Laya._fromDirectory(modelLocalDir);
-    final supportDir = await getApplicationSupportDirectory();
-    final cacheDir = '${supportDir.path}/laya';
-    final source = HuggingFaceModelSource(
-      repoId: _defaultHuggingFaceRepoId,
-      subfolder: _defaultHuggingFaceSubfolder,
-      revision: _defaultHuggingFaceRevision,
-    );
-    await source.ensureDownloaded(cacheDir);
-    return Laya._fromDirectory(cacheDir);
+    final cacheDir = '${(await getApplicationSupportDirectory()).path}/laya';
+    final directory = await HuggingFaceModelSource.ensureDefaultDownloaded(cacheDir);
+    return Laya._fromDirectory(directory.path);
   }
 
   factory Laya._fromDirectory(String modelDir) {
+    final modelFile = File('$modelDir/laya.onnx');
+    if (!modelFile.existsSync() || modelFile.lengthSync() == 0) {
+      throw ArgumentError('Missing or empty model file: ${modelFile.path}');
+    }
     final tokenizerDir = Directory('$modelDir/tokenizer');
     final tokenizerJsonFile = File('${tokenizerDir.path}/tokenizer.json');
     final tokenizerConfigFile = File(
@@ -75,9 +66,12 @@ final class Laya {
       );
     } on FormatException catch (e) {
       throw ArgumentError('Invalid Laya bundle in $modelDir: ${e.message}');
+    } on TypeError catch (e) {
+      throw ArgumentError('Invalid JSON structure in Laya bundle $modelDir: $e');
+    } on FileSystemException catch (e) {
+      throw ArgumentError('Cannot read Laya bundle $modelDir: $e');
     }
 
-    final modelFile = File('$modelDir/laya.onnx');
     final LayaRuntime runtime;
     try {
       runtime = LayaRuntime.open(modelFile);
@@ -93,6 +87,7 @@ final class Laya {
   final LayaConfig _config;
   final LayaRuntime _runtime;
   bool _closed = false;
+  Future<void>? _closeFuture;
 
   /// Answers every question in [questions] against [state] in one forward pass.
   /// [questions] must be non-empty. Each value is either an already-built
@@ -111,7 +106,7 @@ final class Laya {
     );
   }
 
-  /// Like [predict], but runs the native forward pass on the package's
+  /// Like [predict], but runs the native forward pass on a
   /// worker isolate so the caller's isolate (e.g. the UI isolate) stays
   /// responsive while it awaits.
   Future<Map<String, Object>> predictAsync(
@@ -154,9 +149,9 @@ final class Laya {
 
   /// Releases native ORT resources. Safe to call more than once; further
   /// calls to [predict] after closing throw a [StateError].
-  Future<void> close() async {
-    if (_closed) return;
+  Future<void> close() {
+    if (_closeFuture != null) return _closeFuture!;
     _closed = true;
-    await _runtime.close();
+    return _closeFuture = _runtime.close();
   }
 }
