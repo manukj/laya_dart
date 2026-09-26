@@ -1,4 +1,4 @@
-![Laya demo](https://raw.githubusercontent.com/manukj/laya_dart/main/example/lib/demo/demo.GIF)
+![Laya demo](https://raw.githubusercontent.com/manukj/laya_dart/master/example/lib/demo/demo.GIF)
 
 # laya_dart
 
@@ -32,6 +32,10 @@ final result = await laya.predictAsync(
         'other': 'anything else',
       },
     ),
+    'urgency': LayaQuestion.score(
+      instructions: 'How urgently should this message be handled?',
+      criteria: ['not urgent', 'soon', 'urgent', 'critical'],
+    ),
     'refund': LayaQuestion.noul(
       instructions: 'Does the customer request a refund?',
     ),
@@ -40,7 +44,7 @@ final result = await laya.predictAsync(
 await laya.close();
 ```
 
-`Laya.predict` is synchronous. `Laya.predictAsync` queues native inference on a worker isolate. Questions can be `choice`, `score`, or `noul`. Loading and tokenization currently run on the calling isolate; profile their UI impact before shipping.
+`Laya.predict` is synchronous. `Laya.predictAsync` queues native inference on a worker isolate. `choice` selects a labelled option, `score` selects an ordered level, and `noul` returns a yes/no probability. Loading and tokenization currently run on the calling isolate; profile their UI impact before shipping.
 
 Await `laya.close()` to drain accepted requests and release the session. Repeated closes share the same completion. New requests after close and synchronous inference while async requests are pending are rejected. The shared ORT environment remains process-resident so closing one session cannot invalidate another. Native inference has no timeout/cancellation: a caller-side timeout does not stop it.
 
