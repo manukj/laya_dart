@@ -21,10 +21,16 @@ final class Laya {
   /// Opens [modelLocalDir] without network access. When omitted, downloads
   /// the default pinned English bundle into application support storage,
   /// or reuses its checksum-verified cache.
-  static Future<Laya> load([String? modelLocalDir]) async {
+  static Future<Laya> load([
+    String? modelLocalDir,
+    ModelDownloadProgressCallback? onProgress,
+  ]) async {
     if (modelLocalDir != null) return Laya._fromDirectory(modelLocalDir);
     final cacheDir = '${(await getApplicationSupportDirectory()).path}/laya';
-    final directory = await HuggingFaceModelSource.ensureDefaultDownloaded(cacheDir);
+    final directory = await HuggingFaceModelSource.ensureDefaultDownloaded(
+      cacheDir,
+      onProgress: onProgress,
+    );
     return Laya._fromDirectory(directory.path);
   }
 
@@ -67,7 +73,9 @@ final class Laya {
     } on FormatException catch (e) {
       throw ArgumentError('Invalid Laya bundle in $modelDir: ${e.message}');
     } on TypeError catch (e) {
-      throw ArgumentError('Invalid JSON structure in Laya bundle $modelDir: $e');
+      throw ArgumentError(
+        'Invalid JSON structure in Laya bundle $modelDir: $e',
+      );
     } on FileSystemException catch (e) {
       throw ArgumentError('Cannot read Laya bundle $modelDir: $e');
     }

@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:laya_dart/laya_dart.dart';
 import 'demo/snake_game.dart';
 
-/// Local dev bundle assembled by tool/export_local_model.py; see laya_dart/models/laya.
-const _modelDir =
-    '/Users/manu.junjanna/Projects/open_source/laya_dart/laya_dart/models/laya';
-
 const _sampleEmails = {
   'Billing dispute + churn risk':
       'Hi, we were billed twice for our March subscription. Please '
@@ -61,7 +57,10 @@ class _LayaDemoPageState extends State<LayaDemoPage> {
   String? _selectedSample = _sampleEmails.keys.first;
   Laya? _agent;
   Map<String, Object>? _result;
-  bool _loading = false;
+  bool _modelLoading = false;
+  bool _analyzing = false;
+  ModelDownloadProgress? _modelProgress;
+  String? _modelError;
   String? _error;
 
   @override
@@ -73,13 +72,11 @@ class _LayaDemoPageState extends State<LayaDemoPage> {
 
   Future<void> _analyze() async {
     setState(() {
-      _loading = true;
+      _analyzing = true;
       _error = null;
       _result = null;
     });
     try {
-      // Model load is one-time and stays resident for the rest of the session.
-      _agent ??= await Laya.load(_modelDir);
       final result = await _agent!.predictAsync(_controller.text, {
         'department': LayaQuestion.choice(
           instructions: 'Which department should handle this request?',
@@ -109,7 +106,24 @@ class _LayaDemoPageState extends State<LayaDemoPage> {
     } catch (e) {
       setState(() => _error = '$e');
     } finally {
-      setState(() => _loading = false);
+      setState(() => _analyzing = false);
+    }
+  }
+
+  Future<void> _loadModel() async {
+    setState(() {
+      _modelLoading = true;
+      _modelError = null;
+      _modelProgress = null;
+    });
+    try {
+      _agent = await Laya.load(null, (progress) {
+        if (mounted) setState(() => _modelProgress = progress);
+      });
+    } catch (e) {
+      setState(() => _modelError = '$e');
+    } finally {
+      if (mounted) setState(() => _modelLoading = false);
     }
   }
 
@@ -123,9 +137,9 @@ class _LayaDemoPageState extends State<LayaDemoPage> {
           IconButton(
             tooltip: 'Open Laya Snake',
             icon: const Icon(Icons.sports_esports),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SnakeGamePage()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SnakeGamePage())),
           ),
         ],
       ),
@@ -170,15 +184,41 @@ class _LayaDemoPageState extends State<LayaDemoPage> {
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: _loading ? null : _analyze,
-              icon: _loading
+              onPressed: _modelLoading || _agent != null ? null : _loadModel,
+              icon: _modelLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(_agent == null ? Icons.download : Icons.check),
+              label: Text(
+                _modelLoading
+                    ? 'Loading model…'
+                    : _agent == null
+                    ? 'Load model'
+                    : 'Model ready',
+              ),
+            ),
+            if (_modelLoading && _modelProgress != null) ...[
+              const SizedBox(height: 8),
+              _ModelProgress(progress: _modelProgress!),
+            ],
+            if (_modelError != null) ...[
+              const SizedBox(height: 8),
+              Text(_modelError!, style: const TextStyle(color: Colors.red)),
+            ],
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _agent == null || _analyzing ? null : _analyze,
+              icon: _analyzing
                   ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.psychology),
-              label: Text(_loading ? 'Running Laya…' : 'Analyze with Laya'),
+              label: Text(_analyzing ? 'Running Laya…' : 'Analyze with Laya'),
             ),
             const SizedBox(height: 24),
             if (_error != null)
@@ -212,6 +252,39 @@ class _LayaDemoPageState extends State<LayaDemoPage> {
         ),
       ),
     );
+  }
+}
+
+class _ModelProgress extends StatelessWidget {
+  const _ModelProgress({required this.progress});
+
+  final ModelDownloadProgress progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalBytes = progress.totalBytes;
+    final fraction = totalBytes == null || totalBytes == 0
+        ? null
+        : progress.bytesReceived / totalBytes;
+    final byteStatus = totalBytes == null
+        ? _formatBytes(progress.bytesReceived)
+        : '${_formatBytes(progress.bytesReceived)} / ${_formatBytes(totalBytes)}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LinearProgressIndicator(value: fraction),
+        const SizedBox(height: 6),
+        Text(
+          'Downloading ${progress.fileName} '
+          '(${progress.completedFiles + 1}/${progress.totalFiles}) · $byteStatus',
+        ),
+      ],
+    );
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
 

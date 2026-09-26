@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:laya_dart/laya_dart.dart';
+
 import 'snake_game.dart';
 
 /// Laya policy matching the reference Snake demo: Laya scores all four moves,
@@ -8,11 +9,8 @@ import 'snake_game.dart';
 class LayaSnakeDriver {
   LayaSnakeDriver._(this._model);
 
-  static const _modelDir =
-      '/Users/manu.junjanna/Projects/open_source/laya_dart/laya_dart/models/laya';
-
   static Future<LayaSnakeDriver> load() async =>
-      LayaSnakeDriver._(await Laya.load(_modelDir));
+      LayaSnakeDriver._(await Laya.load());
 
   final Laya _model;
   void close() => _model.close();

@@ -1,3 +1,5 @@
+![Laya demo](example/lib/demo/demo.GIF)
+
 # laya_dart
 
 [Laya](https://huggingface.co/convaiinnovations/laya) is an open-source System 1 decision model. It evaluates a state against typed questions and returns choices, scores, and yes/no probabilities.
@@ -16,7 +18,8 @@ dependencies:
 ```dart
 import 'package:laya_dart/laya_dart.dart';
 
-final laya = await Laya.load(); // Downloads once, then reuses the cache.
+// Downloads uppppiiiii/laya_onnx once, then reuses the verified cache.
+final laya = await Laya.load();
 // Or: await Laya.load('/path/to/local/laya-bundle'); // No network access.
 final result = await laya.predictAsync(
   'The customer was charged twice and wants a refund.',
@@ -41,9 +44,11 @@ await laya.close();
 
 Await `laya.close()` to drain accepted requests and release the session. Repeated closes share the same completion. New requests after close and synchronous inference while async requests are pending are rejected. The shared ORT environment remains process-resident so closing one session cannot invalidate another. Native inference has no timeout/cancellation: a caller-side timeout does not stop it.
 
-### Pinned downloads
+### Hugging Face model and pinned downloads
 
-`Laya.load()` downloads the English `receptron/laya-onnx` bundle at commit `68f27dfe5a27a54fb2b1fefc432f43f972e90868` into application support storage, then reuses its verified cache on subsequent calls. Model and external-weight hashes are pinned; config/tokenizer hashes are captured over HTTPS on first download and saved for subsequent validation. The bundle requires roughly 1.7 GB of download/storage. `Laya.load(path)` is always local and offline. Fresh downloads require repository access; HTTP errors are reported (this development environment currently returns 403).
+`Laya.load()` downloads the default [`uppppiiiii/laya_onnx`](https://huggingface.co/uppppiiiii/laya_onnx) bundle from Hugging Face at the immutable commit [`b3930f0f1aed41bb6a4493eafdca9d19ee0d86f5`](https://huggingface.co/uppppiiiii/laya_onnx/tree/b3930f0f1aed41bb6a4493eafdca9d19ee0d86f5). It includes `laya.onnx`, its required `laya.onnx.data` external weights, `rl_agent_config.json`, and the tokenizer files. The bundle requires roughly 1.7 GB of download/storage.
+
+Every downloaded file is pinned to its SHA-256 checksum. The package downloads into application-support storage once, verifies it, and reuses that versioned cache on later runs. To stay fully offline or load a different compatible bundle, pass its directory explicitly: `Laya.load('/path/to/local/laya-bundle')`.
 
 Downloads stream to staging and publish into a versioned directory only after checksum validation. Cached files are checked again before reuse. Old versions are retained; corruption produces an actionable error. `ensureDownloaded` returns the actual version directory; use that path, not the cache root. Process crashes can leave unused staging directories, which may be removed once no downloads are running.
 

@@ -9,10 +9,10 @@
     }
   },
   "model": {
-    "repository": "receptron/laya-onnx",
-    "revision": "68f27dfe5a27a54fb2b1fefc432f43f972e90868",
+    "repository": "uppppiiiii/laya_onnx",
+    "revision": "b3930f0f1aed41bb6a4493eafdca9d19ee0d86f5",
     "files": {
-      "laya.onnx": {"bytes": 3807291, "sha256": "a874eb254b58b0fcb1e7ad56fbb188c29d64e08c9a46b689433e1f52c66dba1e"},
+      "laya.onnx": {"bytes": 3941513, "sha256": "a0ed62e1147e33edfdf385cb813c513618cf0723be13faab9034dd196638c4bd"},
       "laya.onnx.data": {"bytes": 1685258240, "sha256": "487746363a8da57bcadb4345352997d22a0fb90d70aa22c6856668d023242aba"}
     },
     "download_status": "blocked: Hugging Face artifact requests returned HTTP 403",
