@@ -1,4 +1,4 @@
-![Laya demo](example/lib/demo/demo.GIF)
+![Laya demo](https://raw.githubusercontent.com/manukj/laya_dart/main/example/lib/demo/demo.GIF)
 
 # laya_dart
 
