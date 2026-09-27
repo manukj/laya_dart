@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Local model bundle (large download, ~1.7GB)
+/laya_onnx/
+
 # Symbolication related
 app.*.symbols
 
