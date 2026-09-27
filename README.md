@@ -56,10 +56,6 @@ Every downloaded file is pinned to its SHA-256 checksum. The package downloads i
 
 Downloads stream to staging and publish into a versioned directory only after checksum validation. Cached files are checked again before reuse. Old versions are retained; corruption produces an actionable error. `ensureDownloaded` returns the actual version directory; use that path, not the cache root. Process crashes can leave unused staging directories, which may be removed once no downloads are running.
 
-### Verification pending
-
-The latest runtime and downloader changes are implemented but not yet tested. Before release: run unit/analyzer checks; test malformed bundles, inference failure recovery, overlap and close-during-inference, two simultaneous sessions, download interruption/checksum failures/cache updates; then measure cold load, tokenization, warm inference and memory on physical Android/iOS, including offline restart, release/profile builds and Android 16 KB pages. Accelerator selection and smaller model variants remain deferred pending parity and performance/quality evaluation.
-
 For local model download, ONNX conversion, and bundle setup, see the [local model guide](tool/README.md).
 
 ## License
