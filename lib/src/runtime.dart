@@ -1,13 +1,20 @@
+import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:ffi/ffi.dart';
 import 'package:onnxruntime_v2/onnxruntime_v2.dart';
+// Direct binding import: works around onnxruntime_v2 passing the model path
+// as UTF-8 on Windows, where ORT expects wchar_t (ORTCHAR_T). See
+// OrtSession.fromFile in onnxruntime_v2.
+// ignore: implementation_imports
+import 'package:onnxruntime_v2/src/bindings/onnxruntime_bindings_generated.dart'
+    as bg;
 
 import 'batch.dart';
 
 /// Owns one ORT session. The shared ORT environment stays process-resident.
 final class LayaRuntime {
-  LayaRuntime._(this._session, this._options);
   static bool _environmentInitialized = false;
 
   factory LayaRuntime.open(File modelFile) {
@@ -18,12 +25,24 @@ final class LayaRuntime {
       OrtEnv.instance.init();
       _environmentInitialized = true;
     }
-    final options = OrtSessionOptions();
+    OrtSessionOptions? options;
     final OrtSession session;
+    int? windowsOptionsAddress;
     try {
-      session = OrtSession.fromFile(modelFile, options);
+      if (Platform.isWindows) {
+        // onnxruntime_v2 encodes the path as UTF-8, but the Windows ORT
+        // build expects UTF-16 (wchar_t), which surfaces as garbled CJK in
+        // the error plus code=3 (file doesn't exist). Create the session
+        // with a wide-char path instead.
+        final created = _createWindowsSession(modelFile.path);
+        session = created.session;
+        windowsOptionsAddress = created.optionsAddress;
+      } else {
+        options = OrtSessionOptions();
+        session = OrtSession.fromFile(modelFile, options);
+      }
     } catch (_) {
-      options.release();
+      options?.release();
       rethrow;
     }
     const inputs = {'input_ids', 'attention_mask', 'marker_pos', 'marker_mask', 'qtype'};
@@ -31,14 +50,106 @@ final class LayaRuntime {
     if (session.inputNames.toSet().difference(inputs).isNotEmpty ||
         inputs.difference(session.inputNames.toSet()).isNotEmpty ||
         outputs.difference(session.outputNames.toSet()).isNotEmpty) {
-      session.release().whenComplete(options.release);
+      final nativeAddress = windowsOptionsAddress;
+      if (nativeAddress != null) {
+        session.release().whenComplete(
+          () => _releaseNativeOptions(nativeAddress),
+        );
+      } else {
+        session.release().whenComplete(options!.release);
+      }
       throw ArgumentError('Model does not expose the required Laya inputs/outputs');
     }
-    return LayaRuntime._(session, options);
+    return LayaRuntime._(
+      session,
+      windowsOptionsAddress == null ? options : null,
+      windowsOptionsAddress,
+    );
   }
 
+  /// Creates an ORT session on Windows with the model path encoded as
+  /// UTF-16 (wchar_t). The returned options address is natively owned and
+  /// must be released with [_releaseNativeOptions].
+  static ({OrtSession session, int optionsAddress}) _createWindowsSession(
+    String modelPath,
+  ) {
+    final api = OrtEnv.instance.ortApiPtr.ref;
+    final optionsOut = calloc<ffi.Pointer<bg.OrtSessionOptions>>();
+    try {
+      OrtStatus.checkOrtStatus(
+        api.CreateSessionOptions.asFunction<
+          bg.OrtStatusPtr Function(
+            ffi.Pointer<ffi.Pointer<bg.OrtSessionOptions>>,
+          )
+        >()(optionsOut),
+      );
+    } catch (_) {
+      calloc.free(optionsOut);
+      rethrow;
+    }
+    final nativeOptions = optionsOut.value;
+    calloc.free(optionsOut);
+
+    final sessionOut = calloc<ffi.Pointer<bg.OrtSession>>();
+    final pathPtr = modelPath.toNativeUtf16();
+    final int sessionAddress;
+    try {
+      // The generated binding types model_path as Pointer<Char>, but on
+      // Windows the ABI expects wchar_t*. Reinterpret the function pointer
+      // (pointer cast is unchecked) so asFunction sees the wide signature.
+      final createSessionWchar = api.CreateSession.cast<
+        ffi.NativeFunction<
+          bg.OrtStatusPtr Function(
+            ffi.Pointer<bg.OrtEnv>,
+            ffi.Pointer<ffi.WChar>,
+            ffi.Pointer<bg.OrtSessionOptions>,
+            ffi.Pointer<ffi.Pointer<bg.OrtSession>>,
+          )
+        >
+      >();
+      final statusPtr = createSessionWchar.asFunction<
+        bg.OrtStatusPtr Function(
+          ffi.Pointer<bg.OrtEnv>,
+          ffi.Pointer<ffi.WChar>,
+          ffi.Pointer<bg.OrtSessionOptions>,
+          ffi.Pointer<ffi.Pointer<bg.OrtSession>>,
+        )
+      >()(OrtEnv.instance.ptr, pathPtr.cast<ffi.WChar>(), nativeOptions,
+          sessionOut);
+      OrtStatus.checkOrtStatus(statusPtr);
+      sessionAddress = sessionOut.value.address;
+    } catch (_) {
+      _releaseNativeOptions(nativeOptions.address);
+      rethrow;
+    } finally {
+      calloc.free(pathPtr);
+      calloc.free(sessionOut);
+    }
+    try {
+      return (
+        session: OrtSession.fromAddress(sessionAddress),
+        optionsAddress: nativeOptions.address,
+      );
+    } catch (_) {
+      OrtEnv.instance.ortApiPtr.ref.ReleaseSession.asFunction<
+        void Function(ffi.Pointer<bg.OrtSession>)
+      >()(ffi.Pointer<bg.OrtSession>.fromAddress(sessionAddress));
+      _releaseNativeOptions(nativeOptions.address);
+      rethrow;
+    }
+  }
+
+  static void _releaseNativeOptions(int address) {
+    OrtEnv.instance.ortApiPtr.ref.ReleaseSessionOptions.asFunction<
+      void Function(ffi.Pointer<bg.OrtSessionOptions>)
+    >()(ffi.Pointer<bg.OrtSessionOptions>.fromAddress(address));
+  }
+
+  LayaRuntime._(this._session, this._options, [this._nativeOptionsAddress]);
+
   final OrtSession _session;
-  final OrtSessionOptions _options;
+  final OrtSessionOptions? _options;
+  final int? _nativeOptionsAddress;
   bool _closed = false;
   int _pending = 0;
   Future<void>? _closeFuture;
@@ -157,7 +268,12 @@ final class LayaRuntime {
     try {
       await _session.release();
     } finally {
-      _options.release();
+      final nativeOptionsAddress = _nativeOptionsAddress;
+      if (nativeOptionsAddress != null) {
+        _releaseNativeOptions(nativeOptionsAddress);
+      } else {
+        _options?.release();
+      }
     }
   }
 }
