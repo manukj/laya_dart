@@ -1,3 +1,8 @@
+## 0.0.4
+
+* Fix Windows model loading by creating ONNX Runtime sessions with UTF-16
+  model paths.
+
 ## 0.0.3
 
 * Download the default Laya bundle from `uppppiiiii/laya_onnx` at a pinned

@@ -1,6 +1,6 @@
 name: laya_dart
 description: "Run local Laya decision models in Flutter using ONNX Runtime."
-version: 0.0.3
+version: 0.0.4
 repository: https://github.com/manukj/laya_dart
 
 environment:
